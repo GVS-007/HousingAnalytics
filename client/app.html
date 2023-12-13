@@ -1,0 +1,133 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Advanced Home Price Prediction</title>
+    <!-- Bootstrap for responsive and modern styling -->
+    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/css/bootstrap.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.1/css/all.min.css">
+    <!-- Custom CSS for additional styling -->
+    <style>
+        body {
+            background-color: #f4f4f4;
+            padding: 20px;
+            color: #333;
+        }
+        .form-control:focus {
+            border-color: #007bff;
+            box-shadow: 0 0 0 0.2rem rgba(0, 123, 255, 0.25);
+        }
+        .result {
+            margin-top: 20px;
+            background-color: #dff0d8;
+            border-radius: 4px;
+            display: none;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h2 class="my-4">Advanced Home Price Prediction</h2>
+        <form id="pricePredictionForm">
+            <div class="form-group">
+                <label for="location">Location:</label>
+                <select id="location" name="location" class="form-control" required></select>
+            </div>
+            <div class="form-group">
+                <label for="total_sqft">Total Square Feet: <span id="sqft_display">2500</span> sqft</label>
+                <input type="range" id="total_sqft" name="total_sqft" class="form-control-range" min="500" max="5000" value="2500" oninput="updateSliderValue()" required>
+            </div>
+    
+            <div class="form-group">
+                <label for="bhk">Number of Bedrooms (BHK):</label>
+                <input type="number" id="bhk" name="bhk" class="form-control" required>
+            </div>
+            <div class="form-group">
+                <label for="bath">Number of Bathrooms:</label>
+                <input type="number" id="bath" name="bath" class="form-control" required>
+            </div>
+            <button type="submit" class="btn btn-primary">Predict Price</button>
+        </form>
+        <div id="result" class="result alert alert-success" role="alert" style="display: none;">
+            Estimated Price: <span id="price"></span>
+        </div>
+        
+    </div>
+
+    <script>
+
+        function updateSliderValue() {
+            var slider = document.getElementById("total_sqft");
+            var display = document.getElementById("sqft_display");
+            display.textContent = slider.value;
+        }
+
+        // Initialize the display on page load
+        document.addEventListener('DOMContentLoaded', updateSliderValue);
+
+// Utility function to convert a string to title case
+function toTitleCase(str) {
+    return str.replace(/\w\S*/g, function(txt) {
+        return txt.charAt(0).toUpperCase() + txt.substr(1).toLowerCase();
+    });
+}
+
+// Function to populate the location dropdown
+function populateLocationDropdown(locations) {
+    var select = document.getElementById('location');
+    locations.forEach(function(location) {
+        var option = document.createElement('option');
+        option.value = location;
+        option.text = toTitleCase(location); // Convert location to title case
+        select.appendChild(option);
+    });
+}
+
+// Fetch and populate location dropdown when the page loads
+document.addEventListener('DOMContentLoaded', function() {
+    fetch('http://localhost:8000/get_location_names')
+    .then(response => response.json())
+    .then(data => {
+        populateLocationDropdown(data.locations);
+    })
+    .catch(error => console.error('Error loading locations:', error));
+});
+        // Event listener for form submission
+        document.getElementById('pricePredictionForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+    
+            var formData = new FormData(this);
+            var object = {};
+            formData.forEach(function(value, key){
+                object[key] = value;
+            });
+            var json = JSON.stringify(object);
+    
+            console.log("Sending request:", json); // Log the request
+    
+            fetch('http://localhost:8000/predict_home_price', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: json
+            })
+            .then(response => response.json())
+            .then(data => {
+                console.log("Received data:", data); // Log the response data
+                document.getElementById('result').style.display = 'block'; // Show the result div
+                document.getElementById('price').innerText = data.estimated_price; // Set the price
+            })
+            .catch((error) => {
+                console.error('Error:', error);
+                document.getElementById('result').style.display = 'block'; // Show the result div
+                document.getElementById('price').innerText = 'Error in price prediction'; // Show error message
+            });
+        });
+    </script>
+    <script src="https://code.jquery.com/jquery-3.3.1.slim.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.14.7/umd/popper.min.js"></script>
+    <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/js/bootstrap.min.js"></script>
+
+</body>
+</html>
